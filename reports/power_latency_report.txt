@@ -1,0 +1,23 @@
+SentryBand -- Power & Latency Test Report
+==============================================
+
+1) MEASURED: decision latency over 500 synthetic trials
+   mean : 1.232 ms
+   p95  : 1.459 ms
+   max  : 25.400 ms
+   design target (Slide 7): < 50 ms per decision window
+   status vs target (p95) : PASS
+
+2) ESTIMATED (NOT measured -- no physical hardware yet):
+   battery-life projection using assumed current-draw figures.
+   assumed active current   : 6.0 mA
+   assumed sleep current    : 8.0 uA
+   assumed active time/cycle: 50 ms per 2s window
+   assumed battery capacity : 100.0 mAh
+   -> estimated avg current : 0.158 mA
+   -> estimated battery life: 633.7 hours (~26.4 days)
+
+This estimate exists only to sanity-check that the design is in the
+right ballpark for the 'multi-day operation' target claimed in the
+submission. It must be replaced with real current measurements on
+the chosen MCU/sensor parts during the 'Real-World Testing' phase.

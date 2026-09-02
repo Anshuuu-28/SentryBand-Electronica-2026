@@ -1,0 +1,30 @@
+SentryBand -- Literature-Calibrated Bench Report
+====================================================
+
+Data generation calibrated to published specs from:
+  SisFall (Sucerquia et al. 2017): ADXL345 @ 200 Hz, +-16g range, waist-worn, 38 subjects
+  PPG-DaLiA (Reiss et al. 2019): Empatica E4, PPG @ 64 Hz, accel @ 32 Hz, wrist-worn, 15 subjects
+  Full citations + limitations: see CALIBRATION_SOURCES.md
+
+THIS IS STILL SYNTHETIC DATA -- not real recordings from either
+dataset. Only the generation PARAMETERS are grounded in the
+published specifications above.
+
+Model footprint: fall=6.18 KB, heart=13.07 KB, total=19.25 KB (target < 50 KB) -> PASS
+
+Overall bench accuracy (100/class, held-out): 89.50%
+
+Per-class accuracy:
+  normal     (true state: Normal              ) :  97.00%
+  fall       (true state: Possible Fall       ) :  99.00%
+  heart      (true state: Heart Alert         ) :  81.00%
+  combined   (true state: Combined Emergency  ) :  81.00%
+
+Confusion matrix (rows = true state, cols = predicted state):
+                                Normal  Possible Fal   Heart Alert  Combined Eme
+  true=Normal                          97             0             3             0
+  true=Possible Fall                    0            99             0             1
+  true=Heart Alert                     19             0            81             0
+  true=Combined Emergency               0            19             0            81
+
+Decision latency: mean=1.549 ms, p95=1.985 ms (target < 50 ms) -> PASS

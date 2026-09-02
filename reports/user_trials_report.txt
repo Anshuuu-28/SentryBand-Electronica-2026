@@ -1,0 +1,14 @@
+SentryBand -- Controlled User Trials Report (synthetic users)
+==============================================================
+Each 'user' below perturbs sensor windows with a different
+baseline-noise magnitude to emulate person-to-person variation.
+This is a synthetic stand-in for real volunteer trials (roadmap:
+'Real-World Testing' phase). See README limitations.
+
+  user_A (baseline, matches training)    :  84.17% accuracy
+  user_B (mild variation)                :  83.75% accuracy
+  user_C (moderate variation)            :  83.75% accuracy
+  user_D (high variation)                :  83.75% accuracy
+
+Mean accuracy across synthetic users: 83.85%
+Min accuracy (hardest user)          : 83.75%

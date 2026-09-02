@@ -1,0 +1,23 @@
+SentryBand -- Real TFLite Export Report
+=============================================
+fall classifier float model: train_acc=0.968, val_acc=0.900
+fall classifier: 3.87 KB (.tflite, dynamic-range int8 weight quantization, float32 activations -- TensorFlow's own converter)
+heart classifier float model: train_acc=0.853, val_acc=0.717
+heart classifier: 3.70 KB (.tflite, dynamic-range int8 weight quantization, float32 activations -- TensorFlow's own converter)
+
+Total model footprint: 7.56 KB (target < 50 KB)
+
+Float-vs-quantized sanity check (0.5 threshold, per-signal):
+  fall: float_model_acc=0.955  quantized_tflite_acc=0.955  (both OK)
+  heart: float_model_acc=0.800  quantized_tflite_acc=0.800  (both OK)
+
+Accuracy through the REAL quantized .tflite models (tf.lite.Interpreter, held-out real data): 77.50%
+
+Confusion matrix (rows = true, cols = predicted):
+                                Normal  Possible Fal   Heart Alert  Combined Eme
+  true=Normal                          45             1             3             1
+  true=Possible Fall                    4            42             0             4
+  true=Heart Alert                     15             0            35             0
+  true=Combined Emergency               2            13             2            33
+
+This is now a genuine deployment artifact: both .tflite files are real, int8 weight-quantized (dynamic-range), produced by TensorFlow's own TFLiteConverter, and were re-verified through TFLite's own Interpreter (not the Python sklearn models) -- matching the deck's 'TinyML / TFLite-Micro style, converted offline' claim (Slide 7) for real, not as a simulation.

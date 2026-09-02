@@ -1,0 +1,12 @@
+# Raw datasets -- huge, third-party licensed, download separately (see README)
+raw_data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+.vscode/

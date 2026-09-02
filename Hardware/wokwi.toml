@@ -1,0 +1,4 @@
+[wokwi]
+version = 1
+firmware = 'build/Sentryband_module3.ino.hex'
+elf = 'build/Sentryband_module3.ino.elf'

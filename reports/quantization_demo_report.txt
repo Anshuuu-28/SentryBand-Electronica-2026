@@ -1,0 +1,22 @@
+SentryBand -- int8 Quantization Demonstration
+================================================
+Model: small MLP (12 hidden units) on accelerometer features,
+standing in for the deck's 'int8 CNN' option (Slide 7). This
+proves the quantize-and-still-work claim; the shipped pipeline
+uses the decision-tree-ensemble option instead (see models.py).
+
+sklearn float32 model accuracy      : 100.00%
+Manual float32 forward-pass accuracy : 100.00% (sanity check)
+Manual int8-quantized forward accuracy: 100.00%
+Accuracy drop from quantization       : 0.00 pts
+
+Float32 weight size  : 1.04 KB
+Int8 weight size     : 0.13 KB  (8.0x smaller)
+Design target (Slide 7): < 50 KB quantized
+Status                : PASS
+
+Note: this int8 quantization is done manually in numpy (symmetric
+per-array scale) to demonstrate feasibility without a deep-learning
+framework. A production build would use TFLite-Micro's own int8
+quantization + export flow, as named in the deck's 'Deployment
+format' design target.

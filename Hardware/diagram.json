@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "author": "SentryBand",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-mpu6050", "id": "mpu", "top": -80, "left": 260, "attrs": {} },
+    { "type": "wokwi-potentiometer", "id": "pot", "top": 80, "left": 260, "attrs": { "value": "50" } },
+    { "type": "wokwi-led", "id": "led_green", "top": -100, "left": 420, "attrs": { "color": "green" } },
+    { "type": "wokwi-led", "id": "led_yellow", "top": -60, "left": 420, "attrs": { "color": "yellow" } },
+    { "type": "wokwi-led", "id": "led_red", "top": -20, "left": 420, "attrs": { "color": "red" } },
+    { "type": "wokwi-resistor", "id": "r_green", "top": -100, "left": 480, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r_yellow", "top": -60, "left": 480, "attrs": { "value": "220" } },
+    { "type": "wokwi-resistor", "id": "r_red", "top": -20, "left": 480, "attrs": { "value": "220" } },
+    { "type": "wokwi-buzzer", "id": "buzzer", "top": 60, "left": 420, "attrs": {} }
+  ],
+  "connections": [
+    [ "uno:5V", "mpu:VCC", "red", [] ],
+    [ "uno:GND.1", "mpu:GND", "black", [] ],
+    [ "uno:A4", "mpu:SDA", "green", [] ],
+    [ "uno:A5", "mpu:SCL", "yellow", [] ],
+
+    [ "uno:5V", "pot:VCC", "red", [] ],
+    [ "uno:GND.1", "pot:GND", "black", [] ],
+    [ "uno:A0", "pot:SIG", "blue", [] ],
+
+    [ "uno:8", "led_green:A", "green", [] ],
+    [ "led_green:C", "r_green:1", "black", [] ],
+    [ "r_green:2", "uno:GND.1", "black", [] ],
+
+    [ "uno:9", "led_yellow:A", "yellow", [] ],
+    [ "led_yellow:C", "r_yellow:1", "black", [] ],
+    [ "r_yellow:2", "uno:GND.1", "black", [] ],
+
+    [ "uno:10", "led_red:A", "red", [] ],
+    [ "led_red:C", "r_red:1", "black", [] ],
+    [ "r_red:2", "uno:GND.1", "black", [] ],
+
+    [ "uno:11", "buzzer:1", "purple", [] ],
+    [ "uno:GND.1", "buzzer:2", "black", [] ]
+  ]
+}

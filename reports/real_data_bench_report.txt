@@ -1,0 +1,20 @@
+SentryBand -- Bench Test Report (REAL data: SisFall + PPG-DaLiA)
+==================================================================
+Model footprint : fall 16.67 KB + heart 19.48 KB = 36.15 KB (target < 50 KB)
+Overall accuracy (held-out real data): 76.00%
+
+Confusion matrix (rows = true, cols = predicted):
+                                Normal  Possible Fal   Heart Alert  Combined Eme
+  true=Normal                          41             2             6             1
+  true=Possible Fall                    1            44             0             5
+  true=Heart Alert                     14             1            34             1
+  true=Combined Emergency               1            16             0            33
+
+Data provenance:
+  - accelerometer/fall windows : REAL SisFall recordings (waist-worn,
+    see CALIBRATION_SOURCES.md for the wrist-vs-waist caveat)
+  - normal/fall PPG windows    : REAL PPG-DaLiA wrist BVP recordings
+  - heart-alert PPG windows    : real-beat-morphology extracted from
+    PPG-DaLiA, re-timed to tachycardia/bradycardia/arrhythmia rates
+    -- NOT real recorded arrhythmia data (set MIMIC_AF_DIR at the top
+    of this script to use real AF data instead, see module docstring).

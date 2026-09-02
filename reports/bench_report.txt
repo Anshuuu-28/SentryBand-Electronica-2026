@@ -1,0 +1,30 @@
+SentryBand -- Bench Test Report (synthetic held-out data)
+==========================================================
+Samples per class : 100  (total 400)
+Overall accuracy  : 87.50%
+
+Per-class accuracy:
+  normal     (true state: Normal              ) : 100.00%
+  fall       (true state: Possible Fall       ) : 100.00%
+  heart      (true state: Heart Alert         ) :  77.00%
+  combined   (true state: Combined Emergency  ) :  73.00%
+
+Confusion matrix (rows = true state, cols = predicted state):
+                                Normal  Possible Fal   Heart Alert  Combined Eme
+  true=Normal                         100             0             0             0
+  true=Possible Fall                    0           100             0             0
+  true=Heart Alert                     23             0            77             0
+  true=Combined Emergency               0            27             0            73
+
+Decision latency (feature extraction + both classifiers + fusion):
+  mean : 1.243 ms
+  p95  : 1.539 ms
+  max  : 21.493 ms
+  design target (Slide 7): < 50 ms per decision window
+  status vs target (p95) : PASS
+
+Note: latency is measured on this development machine's CPU, not
+the target microcontroller. It validates that the ALGORITHM is cheap
+enough in principle to fit a tight latency budget; final on-MCU timing
+must be re-measured once ported to embedded C, per the roadmap's
+'Real-World Testing' phase.
