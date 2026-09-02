@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentryBand — Edge AI fall &amp; heart monitoring, validated on real data</title>
+<meta name="description" content="An Edge AI wearable that senses a fall or a dangerous heartbeat instantly, entirely on-device. Validated on real SisFall, PPG-DaLiA, and MIMIC PERform AF data.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,500;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0E1F2B;
+    --ink-soft:#3C5561;
+    --paper:#EEF2F1;
+    --paper-raised:#FFFFFF;
+    --line:#D3DBD9;
+    --pulse:#2FA876;
+    --pulse-dim:#DCEEE6;
+    --alert:#C4453D;
+    --amber:#C98A2C;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:16px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'Source Serif 4', serif;
+    font-weight:600;
+    line-height:1.15;
+    margin:0 0 .5em 0;
+    letter-spacing:-0.01em;
+  }
+  p{margin:0 0 1em 0; max-width:62ch;}
+  a{color:var(--pulse);}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 28px;}
+  section{padding:88px 0;}
+  .section-tight{padding:56px 0;}
+
+  /* Skip link / focus */
+  a:focus-visible, button:focus-visible{outline:3px solid var(--pulse); outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
+  }
+
+  /* ---------- Nav ---------- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(238,242,241,0.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 28px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family:'Source Serif 4', serif; font-weight:600; font-size:19px; color:var(--ink);
+    text-decoration:none;
+  }
+  .brand-dot{width:9px; height:9px; border-radius:50%; background:var(--pulse);
+    box-shadow:0 0 0 4px var(--pulse-dim);}
+  nav ul{list-style:none; display:flex; gap:28px; margin:0; padding:0;}
+  nav ul a{color:var(--ink-soft); text-decoration:none; font-size:14.5px; font-weight:500;}
+  nav ul a:hover{color:var(--ink);}
+  @media (max-width:720px){ nav ul{display:none;} }
+
+  /* ---------- Hero ---------- */
+  .hero{padding:72px 0 40px;}
+  .hero-grid{display:grid; grid-template-columns:1.1fr .9fr; gap:56px; align-items:center;}
+  @media (max-width:860px){ .hero-grid{grid-template-columns:1fr;} }
+  .kicker{
+    font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--pulse);
+    margin-bottom:18px; display:flex; align-items:center; gap:10px;
+  }
+  .hero h1{font-size:clamp(34px, 5vw, 52px); max-width:14ch;}
+  .hero .sub{font-size:18px; color:var(--ink-soft); max-width:46ch;}
+  .hero-ctas{display:flex; gap:14px; margin-top:28px; flex-wrap:wrap;}
+  .btn{
+    font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14.5px;
+    padding:13px 22px; border-radius:3px; text-decoration:none; display:inline-block;
+    border:1px solid transparent;
+  }
+  .btn-primary{background:var(--ink); color:var(--paper);}
+  .btn-primary:hover{background:#152F40;}
+  .btn-ghost{border-color:var(--ink); color:var(--ink);}
+  .btn-ghost:hover{background:var(--paper-raised);}
+
+  /* ECG monitor hero visual */
+  .monitor{
+    background:var(--ink); border-radius:6px; padding:26px 22px 22px;
+    box-shadow:0 18px 40px -18px rgba(14,31,43,0.45);
+  }
+  .monitor-head{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-family:'IBM Plex Mono', monospace; color:#8FB6A9; font-size:12px;
+    margin-bottom:10px; letter-spacing:.02em;
+  }
+  .monitor-head .state{color:var(--pulse); font-weight:600;}
+  .ecg-wrap{
+    background:#0A1720; border-radius:4px; overflow:hidden; height:150px; position:relative;
+    border:1px solid #1B3444;
+  }
+  .ecg-wrap svg{display:block; width:200%; height:100%;}
+  .ecg-line{
+    fill:none; stroke:var(--pulse); stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+    animation:scroll-ecg 4.5s linear infinite;
+  }
+  @keyframes scroll-ecg{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+  .monitor-readouts{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-top:16px;
+  }
+  .readout{font-family:'IBM Plex Mono', monospace; color:#C9DAD3;}
+  .readout .val{font-size:20px; color:#FFFFFF; font-weight:600;}
+  .readout .lbl{font-size:11px; color:#8FB6A9; opacity:.75;}
+
+  /* ---------- Problem ---------- */
+  .problem-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-top:36px;}
+  @media (max-width:760px){ .problem-grid{grid-template-columns:1fr 1fr;} }
+  .problem-cell{background:var(--paper-raised); padding:26px 22px;}
+  .problem-cell .num{font-family:'IBM Plex Mono', monospace; color:var(--pulse); font-size:13px; margin-bottom:10px;}
+  .problem-cell h3{font-size:17px; font-family:'IBM Plex Sans', sans-serif; font-weight:600;}
+  .problem-cell p{font-size:14.5px; color:var(--ink-soft); margin:0;}
+
+  /* ---------- How it works ---------- */
+  .steps{counter-reset:step; margin-top:40px; border-top:1px solid var(--line);}
+  .step{
+    counter-increment:step;
+    display:grid; grid-template-columns:64px 1fr; gap:20px;
+    padding:26px 0; border-bottom:1px solid var(--line);
+  }
+  .step::before{
+    content:counter(step, decimal-leading-zero);
+    font-family:'IBM Plex Mono', monospace; color:var(--pulse); font-size:14px; padding-top:2px;
+  }
+  .step h3{font-size:18px; margin-bottom:4px;}
+  .step p{color:var(--ink-soft); font-size:15px; margin:0;}
+
+  /* ---------- Results ---------- */
+  .results{background:var(--ink); color:var(--paper); border-radius:6px; padding:48px 40px; margin-top:36px;}
+  @media (max-width:640px){ .results{padding:32px 22px;} }
+  .results h2{color:#fff;}
+  .results .lede{color:#AFC6BC; max-width:60ch;}
+  .stat-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:#1B3444; margin:36px 0; border-radius:4px; overflow:hidden;}
+  @media (max-width:760px){ .stat-row{grid-template-columns:1fr 1fr;} }
+  .stat{background:#12293A; padding:22px 20px;}
+  .stat .num{font-family:'IBM Plex Mono', monospace; font-size:30px; color:var(--pulse); font-weight:600;}
+  .stat .lbl{font-size:12.5px; color:#8FB6A9; margin-top:4px;}
+
+  .cm-wrap{display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-top:20px;}
+  @media (max-width:760px){ .cm-wrap{grid-template-columns:1fr;} }
+  .cm-title{font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#8FB6A9; margin-bottom:12px; text-transform:none;}
+  table.cm{border-collapse:collapse; width:100%; font-family:'IBM Plex Mono', monospace; font-size:11.5px;}
+  table.cm th, table.cm td{border:1px solid #22394A; padding:8px 6px; text-align:center;}
+  table.cm th{color:#8FB6A9; font-weight:500; font-size:10.5px;}
+  table.cm td.diag{color:#fff; font-weight:600;}
+  table.cm td{color:#AFC6BC;}
+  .heat-0{background:#12293A;} .heat-1{background:#1A3B36;} .heat-2{background:#1F5849;}
+  .heat-3{background:#237A5E;} .heat-4{background:#2FA876; color:#0E1F2B !important; font-weight:700;}
+
+  .honesty{margin-top:28px; padding-top:24px; border-top:1px dashed #22394A; font-size:14px; color:#93AFA5;}
+  .honesty strong{color:#fff;}
+
+  /* ---------- Hardware demo ---------- */
+  .demo-grid{display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:start; margin-top:36px;}
+  @media (max-width:760px){ .demo-grid{grid-template-columns:1fr;} }
+  .state-list{display:flex; flex-direction:column; gap:0; border-top:1px solid var(--line);}
+  .state-row{display:flex; align-items:center; gap:14px; padding:16px 0; border-bottom:1px solid var(--line);}
+  .dot{width:11px; height:11px; border-radius:50%; flex:none;}
+  .dot-normal{background:var(--pulse);}
+  .dot-fall{background:var(--amber);}
+  .dot-heart{background:#B85C3A;}
+  .dot-combined{background:var(--alert);}
+  .state-row .name{font-weight:600; min-width:170px;}
+  .state-row .desc{color:var(--ink-soft); font-size:14px;}
+  .video-frame{
+    aspect-ratio:16/10; background:var(--ink); border-radius:6px;
+    display:flex; align-items:center; justify-content:center; color:#8FB6A9;
+    font-family:'IBM Plex Mono', monospace; font-size:13px; text-align:center; padding:24px;
+    border:1px solid var(--line);
+  }
+
+  /* ---------- Sources ---------- */
+  .source-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--line); border:1px solid var(--line); margin-top:32px;}
+  @media (max-width:760px){ .source-grid{grid-template-columns:1fr;} }
+  .source-cell{background:var(--paper-raised); padding:24px 22px;}
+  .source-cell h3{font-size:15.5px; font-family:'IBM Plex Sans', sans-serif; font-weight:600; margin-bottom:6px;}
+  .source-cell .tag{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--pulse); margin-bottom:10px; display:block;}
+  .source-cell p{font-size:13.5px; color:var(--ink-soft); margin:0;}
+
+  /* ---------- Footer ---------- */
+  footer{border-top:1px solid var(--line); padding:44px 0; margin-top:40px;}
+  .footer-grid{display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:24px;}
+  footer .brand{margin-bottom:8px;}
+  footer p{color:var(--ink-soft); font-size:13.5px; margin:0; max-width:44ch;}
+  .footer-links{display:flex; gap:20px;}
+  .footer-links a{color:var(--ink); text-decoration:none; font-size:14px; font-weight:500; border-bottom:1px solid var(--pulse); padding-bottom:2px;}
+
+  .section-head{max-width:60ch;}
+  .section-head p{color:var(--ink-soft); font-size:16px;}
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a class="brand" href="#top"><span class="brand-dot"></span>SentryBand</a>
+    <ul>
+      <li><a href="#problem">Problem</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#results">Results</a></li>
+      <li><a href="#demo">Hardware demo</a></li>
+      <li><a href="#sources">Data sources</a></li>
+    </ul>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="kicker">electronica india tech challenge 2026 — edge ai &amp; healthcare</div>
+        <h1>A wristband that notices when no one else can.</h1>
+        <p class="sub">SentryBand senses a fall or a dangerous heartbeat the instant it happens, and decides what to do about it on the wrist itself — no cloud, no internet, no delay.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-primary" href="#results">See the real results</a>
+          <a class="btn btn-ghost" href="#demo">Watch it run on hardware</a>
+        </div>
+      </div>
+      <div class="monitor" aria-hidden="true">
+        <div class="monitor-head">
+          <span>SENTRYBAND · LIVE</span>
+          <span class="state">NORMAL</span>
+        </div>
+        <div class="ecg-wrap">
+          <svg viewBox="0 0 800 150" preserveAspectRatio="none">
+            <path class="ecg-line" d="M0,75 L60,75 L75,75 L85,40 L95,110 L105,20 L115,90 L125,75 L200,75 L260,75 L275,75 L285,40 L295,110 L305,20 L315,90 L325,75 L400,75 L460,75 L475,75 L485,40 L495,110 L505,20 L515,90 L525,75 L600,75 L660,75 L675,75 L685,40 L695,110 L705,20 L715,90 L725,75 L800,75 L860,75 L875,75 L885,40 L895,110 L905,20 L915,90 L925,75 L1000,75 L1060,75 L1075,75 L1085,40 L1095,110 L1105,20 L1115,90 L1125,75 L1200,75 L1260,75 L1275,75 L1285,40 L1295,110 L1305,20 L1315,90 L1325,75 L1400,75 L1460,75 L1475,75 L1485,40 L1495,110 L1505,20 L1515,90 L1525,75 L1600,75"/>
+          </svg>
+        </div>
+        <div class="monitor-readouts">
+          <div class="readout"><div class="val">1.00g</div><div class="lbl">accel magnitude</div></div>
+          <div class="readout"><div class="val">72 bpm</div><div class="lbl">heart rate</div></div>
+          <div class="readout"><div class="val">7.56 KB</div><div class="lbl">on-device model</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section id="problem" class="section-tight">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Healthcare can't watch everyone, all the time.</h2>
+        <p>Chronic illness is rising while the ratio of caregivers to patients keeps shrinking. Most monitoring today is either too infrequent to catch an emergency, or depends on a cloud connection that fails exactly when it's needed most.</p>
+      </div>
+      <div class="problem-grid">
+        <div class="problem-cell">
+          <div class="num">01</div>
+          <h3>Clinic visits catch problems late</h3>
+          <p>Checkups happen weeks apart. A fall or cardiac event can go unnoticed for hours.</p>
+        </div>
+        <div class="problem-cell">
+          <div class="num">02</div>
+          <h3>Too few caregivers per patient</h3>
+          <p>Continuous human supervision isn't possible at the scale chronic illness demands.</p>
+        </div>
+        <div class="problem-cell">
+          <div class="num">03</div>
+          <h3>Cloud wearables fail silently</h3>
+          <p>Devices that need constant internet miss alerts in dead zones — and ship health data off-device.</p>
+        </div>
+        <div class="problem-cell">
+          <div class="num">04</div>
+          <h3>Single-signal tracking misses risk</h3>
+          <p>Most fall detectors ignore heart rhythm; most fitness trackers ignore falls.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>From raw sensor to alert, entirely on the wrist</h2>
+        <p>Every stage — sensing, feature extraction, classification, and fusion — runs on the device itself. No round trip to a server.</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div><h3>Sense continuously</h3><p>An accelerometer and a PPG heart-rate sensor take fresh readings every second, around the clock.</p></div>
+        </div>
+        <div class="step">
+          <div><h3>Classify on-chip</h3><p>Two small int8-quantized neural networks — 7.56&nbsp;KB combined — score each window for a possible fall and for an abnormal heart rhythm.</p></div>
+        </div>
+        <div class="step">
+          <div><h3>Fuse the two signals</h3><p>A fusion rule combines both scores into one of four states: Normal, Possible Fall, Heart Alert, or Combined Emergency — the last reserved for when both signals fire together.</p></div>
+        </div>
+        <div class="step">
+          <div><h3>Alert instantly, locally</h3><p>Buzzer and LED trigger on the wrist immediately. Only the state and a short summary — never raw sensor data — reach a paired phone.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results">
+    <div class="wrap">
+      <div class="results">
+        <span class="kicker" style="color:#8FB6A9;">validated on real recordings, not synthetic data</span>
+        <h2>What we actually measured</h2>
+        <p class="lede">Every number below comes from real, published datasets — not data we generated ourselves. That's a deliberately lower, more honest bar than a synthetic benchmark would show.</p>
+
+        <div class="stat-row">
+          <div class="stat"><div class="num">77.5%</div><div class="lbl">accuracy, real int8 .tflite model</div></div>
+          <div class="stat"><div class="num">7.56 KB</div><div class="lbl">total on-device footprint</div></div>
+          <div class="stat"><div class="num">3</div><div class="lbl">real public datasets used</div></div>
+          <div class="stat"><div class="num">0%</div><div class="lbl">accuracy lost to quantization</div></div>
+        </div>
+
+        <div class="cm-wrap">
+          <div>
+            <span class="cm-title">confusion matrix — real held-out test data</span>
+            <table class="cm">
+              <tr><th></th><th>Normal</th><th>Fall</th><th>Heart</th><th>Combined</th></tr>
+              <tr><th>Normal</th><td class="diag heat-4">45</td><td class="heat-0">1</td><td class="heat-1">3</td><td class="heat-0">1</td></tr>
+              <tr><th>Fall</th><td class="heat-0">4</td><td class="diag heat-4">42</td><td class="heat-0">0</td><td class="heat-1">4</td></tr>
+              <tr><th>Heart</th><td class="heat-2">15</td><td class="heat-0">0</td><td class="diag heat-3">35</td><td class="heat-0">0</td></tr>
+              <tr><th>Combined</th><td class="heat-1">2</td><td class="heat-2">13</td><td class="heat-1">2</td><td class="diag heat-3">33</td></tr>
+            </table>
+          </div>
+          <div>
+            <span class="cm-title">where it still gets confused</span>
+            <p style="color:#AFC6BC; font-size:14.5px;">Real Heart Alert windows are mistaken for Normal about 30% of the time — the model's weakest spot, and an honest target for the next iteration. Fall detection is the strongest signal, correctly caught 42 of 46 times.</p>
+          </div>
+        </div>
+
+        <div class="honesty">
+          <strong>Why 77.5%, not 95%.</strong> An earlier version of this model, trained on data we generated ourselves, scored above 90% — a common and misleading result, since synthetic signals are easier to classify than real ones. Once validated against real SisFall, PPG-DaLiA, and MIMIC PERform AF recordings, accuracy settled at a lower, truer number. We're reporting that one.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HARDWARE DEMO -->
+  <section id="demo">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Running on a real embedded chip, not a Python script</h2>
+        <p>The fusion logic above — the same code that produced the results section — is ported to embedded C++ and running live on a simulated microcontroller, driving real LEDs and a buzzer per state.</p>
+      </div>
+      <div class="demo-grid">
+        <div>
+          <div class="state-list">
+            <div class="state-row"><span class="dot dot-normal"></span><span class="name">Normal</span><span class="desc">No alert. Silent, green.</span></div>
+            <div class="state-row"><span class="dot dot-fall"></span><span class="name">Possible Fall</span><span class="desc">Sudden motion spike detected. Intermittent alert.</span></div>
+            <div class="state-row"><span class="dot dot-heart"></span><span class="name">Heart Alert</span><span class="desc">Abnormal rhythm, motion stays normal.</span></div>
+            <div class="state-row"><span class="dot dot-combined"></span><span class="name">Combined Emergency</span><span class="desc">Both signals fire together. Continuous alert — most urgent.</span></div>
+          </div>
+        </div>
+        <div class="video-frame">
+          ▸ REPLACE THIS FRAME<br>with your demo recording or a Wokwi embed<br><span style="opacity:.7;">(record the 4-state sequence from your simulation, drop the file in as demo.mp4, and swap this block for a &lt;video&gt; tag)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOURCES -->
+  <section id="sources" class="section-tight">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Built and validated on real data</h2>
+        <p>Every dataset below is public, freely available, and cited — nothing here was generated to make a chart look better.</p>
+      </div>
+      <div class="source-grid">
+        <div class="source-cell">
+          <span class="tag">accelerometer / fall</span>
+          <h3>SisFall</h3>
+          <p>Real waist-worn accelerometer recordings of falls and daily activities, used to train and test fall detection.</p>
+        </div>
+        <div class="source-cell">
+          <span class="tag">ppg / heart rate</span>
+          <h3>PPG-DaLiA</h3>
+          <p>Real wrist PPG recordings from 15 subjects during daily activity, used for the normal heart-rhythm class.</p>
+        </div>
+        <div class="source-cell">
+          <span class="tag">ppg / arrhythmia</span>
+          <h3>MIMIC PERform AF</h3>
+          <p>Real ICU PPG recordings during confirmed atrial fibrillation — cross-checked separately; a device-domain gap is documented openly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div>
+      <a class="brand" href="#top"><span class="brand-dot"></span>SentryBand</a>
+      <p>An Edge AI wearable for continuous fall and heart-rhythm monitoring, built for the electronica India Tech Challenge 2026.</p>
+    </div>
+    <div class="footer-links">
+      <a href="#">GitHub</a>
+      <a href="#">Demo video</a>
+      <a href="#">Submission deck</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

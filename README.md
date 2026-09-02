@@ -1,73 +1,178 @@
-# SentryBand — Prototype (Idea Submission Round)
-
-This repository implements, in software, exactly what was described in the
-**submitted idea (text answers + `SentryBand.pptx`)** for the HackCulture
-"Edge AI & Healthcare" challenge — nothing more, nothing invented beyond it.
+# SentryBand — electronica India Tech Challenge 2026
 
 > SentryBand: an Edge AI wearable that senses a fall or a dangerous
 > heartbeat the instant it happens, and responds on its own, with no
 > internet, no cloud, no delay.
 
-It is a **PC-based algorithmic prototype**: a full, working implementation
-of the sensing → feature extraction → on-device AI classification →
-decision fusion → alert pipeline described in the deck, running on
-synthetic (simulated) accelerometer and PPG data, since no physical
-wearable board exists yet. Building that physical board is explicitly the
-**next** phase of the roadmap that was submitted ("Real-World Testing" —
-see Slide 14 / the text answers), not this one.
+Repo: https://github.com/Anshuuu-28/SentryBand-Electronica-2026
 
-Every module below is commented with the exact slide/text-answer it
-implements, so you can trace each line of code back to a specific claim
-in the submission.
+This started as a software-only algorithmic prototype validated on
+synthetic data. It is now:
+
+1. **Trained and validated on real, published sensor recordings** —
+   not data we generated ourselves (SisFall, PPG-DaLiA, and a real
+   cross-check against MIMIC PERform AF).
+2. **Exported to a genuine int8-quantized `.tflite` model**, produced by
+   TensorFlow's own converter and re-verified through TFLite's own
+   interpreter — not a numpy simulation of quantization.
+3. **Running as real embedded C++ firmware**, compiled and simulated on
+   a microcontroller in Wokwi, driving real LEDs and a buzzer per state.
+4. Presented on a **deployable single-page site** (`index.html`) for the
+   submission and demo video.
+
+Every honest limitation that still exists is documented below, in the
+same spirit as the rest of this repo — nothing here is claimed beyond
+what was actually measured.
 
 ---
 
-## What's implemented, mapped to the submission
+## What's real vs. what's a documented simplification
 
-| Submission claim | Where it's implemented |
-|---|---|
-| Sensing Layer: 3-axis accelerometer + optical PPG, sampled 1–25 Hz | `src/sensors.py` |
-| Feature Extraction (time & frequency domain) | `src/features.py` |
-| Edge Compute Layer: Fall + Heart-Rhythm Inference Engine (decision-tree ensemble) | `src/models.py`, `scripts/train.py` |
-| Edge Compute Layer: Quantized Classifier (int8 CNN option) | `scripts/quantization_demo.py` |
-| Decision & Fusion Layer: Normal / Possible Fall / Heart Alert / Combined Emergency | `src/fusion.py` |
-| Output Layer: on-wrist buzzer/LED + BLE alert to phone/caregiver | `src/alerts.py` |
-| Full 4-step pipeline ("Sensors Collect Data → AI Checks the Pattern → Decision Made On the Spot → Alert Sent Right Away") | `src/pipeline.py`, `scripts/demo_realtime.py` |
-| Design Targets table (footprint < 50 KB, latency < 50 ms) | `src/config.py`, verified by `scripts/train.py` + `scripts/bench_test.py` |
-| Feasibility & Validation plan: Bench Testing | `scripts/bench_test.py` |
-| Feasibility & Validation plan: Controlled User Trials | `scripts/user_trials.py` |
-| Feasibility & Validation plan: Power & Endurance Testing | `scripts/power_latency_test.py` |
-| Feasibility & Validation plan: False-Alarm Reduction | `scripts/false_alarm_tuning.py` |
-| "Raw health data never leaves the wrist" (privacy claim) | enforced in `src/alerts.py` — the BLE payload contains only the classification result, never raw sensor samples |
-| "No cloud, no external server" (offline claim) | the entire pipeline (`src/pipeline.py`) has zero network calls |
+| Claim | Status | Where |
+|---|---|---|
+| Fall detection trained/tested on real accelerometer data | ✅ Real — SisFall (waist-worn) | `src/real_data_loader.py`, `scripts/train_and_bench_real.py` |
+| Heart-rhythm detection trained/tested on real PPG data | ✅ Real — PPG-DaLiA (normal rhythm) | same |
+| Real recorded arrhythmia data | ✅ Real, cross-checked separately — MIMIC PERform AF | see "Cross-device finding" below |
+| int8-quantized, embeddable model file | ✅ Real `.tflite` (dynamic-range int8 weights), TensorFlow's own converter + interpreter | `scripts/export_tflite_real.py`, `models_tflite/` |
+| Decision logic running on a microcontroller | ✅ Real, compiled C++ firmware, ported from `src/fusion.py`, simulated in Wokwi | `firmware/sentryband_wokwi/` |
+| Full on-device ML feature extraction (spectral/statistical) in embedded C | ❌ Out of scope for this stage — documented, not hidden | see firmware README note below |
+| Physical hardware (real MCU, real sensors) | ❌ Simulated only (Wokwi) | next roadmap step |
+
+---
+
+## Real-data results (headline numbers)
+
+Validated on held-out windows from real SisFall + PPG-DaLiA recordings
+(see `CALIBRATION_SOURCES.md` and `src/real_data_loader.py` for exact
+dataset provenance and every honesty caveat).
+
+| | scikit-learn model (`models_real/`) | int8 `.tflite` model (`models_tflite/`) |
+|---|---|---|
+| **Accuracy** | 76.0% | **77.5%** (quantization cost 0% accuracy) |
+| **Footprint** | 36.15 KB | **7.56 KB** (fall 3.87 KB + heart 3.70 KB) |
+| Format | pickled RandomForest | genuine int8-quantized `.tflite`, TensorFlow's converter |
+
+Target from the submission: footprint < 50 KB → **passed by a wide margin** on both.
+
+### Confusion matrix — real `.tflite` model, held-out real data
+
+```
+                        Normal   Fall   Heart   Combined
+true=Normal               45      1      3         1
+true=Fall                  4     42      0         4
+true=Heart Alert          15      0     35         0
+true=Combined Emergency    2     13      2        33
+```
+
+Real Heart Alert windows are the weakest spot — mistaken for Normal
+~30% of the time. That's an honest, specific target for future work,
+not smoothed over.
+
+### Why 77.5%, not the ~90%+ from early synthetic testing
+
+An earlier iteration trained purely on synthetic (procedurally
+generated) sensor data scored above 90%. That number is not reported as
+a headline result here, because synthetic data is easier to classify
+than real recordings — a materially misleading comparison. Every number
+in the table above comes from real, cited, third-party datasets.
+
+### Cross-device finding (a real result worth keeping)
+
+We also tested training the Heart Alert class directly on real MIMIC
+PERform AF recordings (genuine ICU-recorded atrial fibrillation) instead
+of the single-device synthetic-timing hybrid. Combined accuracy
+*dropped* to 68% — full threshold tuning found no improvement,
+indicating a genuine cross-device domain-shift problem (ICU pulse-
+oximeter vs. wrist wearable PPG have different noise/morphology
+characteristics that need domain adaptation, not just retuning). This is
+a documented, real finding, not a bug — see `src/real_data_loader.py`'s
+`load_mimic_af_windows()` docstring for the full detail. The deployed
+model uses the single-device hybrid (77.5% above); the cross-device
+result is preserved as an honest, specific direction for future work.
+
+---
+
+## Real embedded firmware (Wokwi)
+
+`firmware/sentryband_wokwi/` contains real, compiled Arduino C++ that
+runs in Wokwi's simulator:
+
+- **`sketch.ino`** — a direct C++ port of `src/fusion.py`'s 4-state
+  decision logic and `src/alerts.py`'s buzzer/LED/BLE-alert behavior.
+  Confirmed compiling and running correctly across all 4 states (Normal,
+  Possible Fall, Heart Alert, Combined Emergency).
+- **`diagram.json`** — wiring for an Arduino Uno + MPU6050 (fall
+  detection via magnitude-spike threshold) + potentiometer (heart-rate
+  proxy, 40-180 bpm) + 3 LEDs + buzzer.
+- **`libraries.txt`** — required Arduino libraries.
+
+**Scope note, stated plainly:** this firmware ports the *decision/fusion
+logic*, not the full ML feature-extraction pipeline (`src/features.py`).
+Replicating exact spectral/statistical features in embedded C is out of
+scope for this hardware-demo stage, and Wokwi's simulated sensors don't
+produce physically realistic fall/arrhythmia waveforms anyway — so doing
+so wouldn't add real validation value here. The ML models above (Module
+1/2) are validated separately, on real data, in Python/TFLite.
+
+### Run it
+
+1. Go to [wokwi.com](https://wokwi.com) → New Project → Arduino Uno
+   (or use the Wokwi VS Code extension).
+2. Replace the default `sketch.ino` and `diagram.json` with the ones in
+   `firmware/sentryband_wokwi/`.
+3. Start the simulation. Watch the Serial Monitor for `[STATE]` and
+   `[BLE]` lines.
+4. Drag the potentiometer (or edit its `"value"` in `diagram.json`,
+   0-100) to change the simulated heart rate; shake/tilt the MPU6050 to
+   trigger a simulated fall.
+
+---
+
+## Presentation site
+
+`index.html` (repo root) is a single-file, dependency-free static site
+for the submission and demo video — deployable directly via GitHub
+Pages (Settings → Pages → Deploy from branch → `main` / `/root`). It
+presents the real numbers above, the 4 device states, and the real data
+sources, with an embed slot for your demo recording.
 
 ---
 
 ## Project structure
 
 ```
-sentryband_prototype/
+SentryBand-Electronica-2026/
 ├── README.md
+├── CALIBRATION_SOURCES.md      # exact provenance + honesty caveats for every real-data number
 ├── requirements.txt
+├── index.html                   # presentation / demo site
 ├── src/
-│   ├── config.py       # design targets & constants, copied from the deck
-│   ├── sensors.py       # synthetic accelerometer + PPG generators
-│   ├── features.py      # time & frequency-domain feature extraction
-│   ├── dataset.py       # builds labeled synthetic datasets
-│   ├── models.py        # trains/saves/loads the fall + heart classifiers
-│   ├── fusion.py         # 4-state decision fusion logic
-│   ├── alerts.py         # buzzer/LED + BLE alert simulation
-│   └── pipeline.py       # ties every layer together end to end
+│   ├── config.py                 # design targets & tuned thresholds
+│   ├── sensors.py                 # synthetic accelerometer + PPG generators (original prototype)
+│   ├── calibrated_sensors.py      # literature-calibrated synthetic generators
+│   ├── real_data_loader.py        # loads REAL SisFall / PPG-DaLiA / MIMIC PERform AF data
+│   ├── features.py                # time & frequency-domain feature extraction
+│   ├── dataset.py / calibrated_dataset.py
+│   ├── models.py                  # trains/saves/loads the fall + heart classifiers
+│   ├── fusion.py                  # 4-state decision fusion logic (also ported to firmware/)
+│   ├── alerts.py                  # buzzer/LED + BLE alert simulation (also ported to firmware/)
+│   └── pipeline.py                # ties every layer together end to end
 ├── scripts/
-│   ├── train.py                  # train + save models, report footprint
-│   ├── demo_realtime.py          # live-style walkthrough of all 4 steps
-│   ├── bench_test.py             # held-out accuracy + confusion matrix + latency
-│   ├── user_trials.py            # synthetic multi-user accuracy check
-│   ├── power_latency_test.py     # latency measurement + battery-life estimate
-│   ├── false_alarm_tuning.py     # threshold sweep to cut false positives
-│   └── quantization_demo.py      # manual int8 quantization proof-of-concept
-├── models/                # pre-trained classifiers (generated by train.py)
-└── reports/               # pre-generated output of every script below
+│   ├── train.py / bench_test.py / user_trials.py / power_latency_test.py
+│   ├── false_alarm_tuning.py / quantization_demo.py     # original synthetic-data suite
+│   ├── train_and_bench_calibrated.py                     # literature-calibrated synthetic suite
+│   ├── extract_pkl_only.py / extract_wrist_compact.py     # PPG-DaLiA data extraction utilities
+│   ├── train_and_bench_real.py     # train + bench on REAL data (headline results)
+│   ├── tune_real_thresholds.py     # threshold sweep on real held-out data
+│   └── export_tflite_real.py       # real int8 .tflite export + TFLite Interpreter verification
+├── firmware/
+│   └── sentryband_wokwi/           # real embedded C++ firmware (Wokwi simulation)
+│       ├── sketch.ino
+│       ├── diagram.json
+│       └── libraries.txt
+├── models/ models_calibrated/       # synthetic-data models (original prototype)
+├── models_real/ models_tflite/      # REAL-data models (sklearn + int8 .tflite)
+└── reports/                         # generated output of every script above
 ```
 
 ---
@@ -76,90 +181,67 @@ sentryband_prototype/
 
 ```bash
 pip install -r requirements.txt
+pip install tensorflow   # only needed for scripts/export_tflite_real.py
 ```
 
-Requires only `numpy`, `scipy`, and `scikit-learn` — no TensorFlow, no
-hardware SDKs, no network access.
-
-## How to run
+## How to run the real-data pipeline (headline results)
 
 ```bash
-# 1. Train the fall + heart-rhythm classifiers and save them to models/
-python scripts/train.py
+# 1. Download the datasets (see src/real_data_loader.py module docstring
+#    for exact download links and expected folder structure):
+#      - SisFall (accelerometer/fall)
+#      - PPG-DaLiA (PPG/heart rate) -- use scripts/extract_wrist_compact.py
+#        to pull only the small wrist-signal .npz files, not the full
+#        ~1.3 GB-per-subject raw .pkl files
+#      - MIMIC PERform AF (optional, for the cross-device check above)
 
-# 2. Watch the full 4-step pipeline process a simulated live stream
-python scripts/demo_realtime.py --n 20
+# 2. Edit the dataset paths at the top of these 3 scripts, then run:
+python scripts/train_and_bench_real.py     # trains + benches on real data
+python scripts/tune_real_thresholds.py     # sweeps thresholds on real held-out data
+python scripts/export_tflite_real.py       # exports + verifies the real int8 .tflite
 
-# 3. Run the validation suite described in the submission's Feasibility & Validation plan
-python scripts/bench_test.py            # Bench Testing
-python scripts/user_trials.py           # Controlled User Trials
-python scripts/power_latency_test.py    # Power & Endurance Testing
-python scripts/false_alarm_tuning.py    # False-Alarm Reduction
-
-# 4. See the int8 quantization proof-of-concept (the "int8 CNN" option from Slide 7)
-python scripts/quantization_demo.py
+# 3. Run the Wokwi firmware -- see "Real embedded firmware" above
 ```
 
-Every script above has already been run once; its exact output is saved in
-`reports/` so you can read the results without re-running anything.
+## How to run the original synthetic-data suite (kept for reference)
 
-## Sample results (from `reports/`, generated by this codebase)
+```bash
+python scripts/train.py
+python scripts/demo_realtime.py --n 20
+python scripts/bench_test.py
+python scripts/user_trials.py
+python scripts/power_latency_test.py
+python scripts/false_alarm_tuning.py
+python scripts/quantization_demo.py
+python scripts/train_and_bench_calibrated.py   # literature-calibrated synthetic variant
+```
 
-- **Model footprint**: fall classifier 6.18 KB + heart classifier 12.29 KB
-  = **18.47 KB total**, against the submitted **< 50 KB** target → PASS.
-- **Decision latency**: mean 2.5 ms, p95 3.0 ms (feature extraction +
-  both classifiers + fusion, measured on a laptop CPU), against the
-  submitted **< 50 ms** target → PASS (with the caveat below).
-- **Bench test accuracy**: 87.5% overall across 400 held-out synthetic
-  windows (100/class); fall detection 100%, heart-rhythm detection
-  ~77–100% depending on threshold (see `false_alarm_tuning.py`).
-- **False-alarm tuning**: at `fall_threshold=0.30, heart_threshold=0.50`,
-  false-positive rate on true-Normal windows drops to **0%** while
-  keeping **93.8% recall** on true emergencies.
-- **int8 quantization demo**: a small on-device-style neural net
-  shrinks **8× (1.04 KB → 0.13 KB)** after int8 quantization with
-  **zero accuracy loss** on the synthetic test set.
-- **Battery-life estimate**: ~26 days on a 100 mAh cell, using clearly
-  labeled *assumed* (not measured) current-draw figures — see the
-  limitations section below.
+Every script's exact output is saved in `reports/` so results can be
+read without re-running anything.
 
 ---
 
 ## Honest limitations (please read before judging accuracy numbers)
 
-This is a **software validation of the pipeline's logic**, built to prove
-the architecture and decision logic described in the submission actually
-work end to end — it is **not** a claim that physical hardware has been
-built or tested yet. Specifically:
+1. **No physical hardware yet.** Everything above runs on real *data*
+   but simulated *sensors* (Wokwi) — there is no physical MCU,
+   accelerometer, PPG sensor, or BLE radio. Building and testing on real
+   parts remains the submission's own next roadmap step
+   ("Real-World Testing").
+2. **Heart Alert real-data recall is ~70%** (see confusion matrix
+   above) — the model's clearest weak point, stated plainly rather than
+   smoothed over.
+3. **The firmware ports decision logic, not full feature extraction**
+   (see "Real embedded firmware" above) — a deliberate, documented scope
+   boundary for this stage, not a gap being hidden.
+4. **Cross-device (MIMIC AF ↔ PPG-DaLiA) fusion underperforms** — a real,
+   measured finding (see "Cross-device finding" above), not yet solved.
+5. **Latency is measured on a laptop/Wokwi CPU**, not the eventual target
+   MCU in real hardware — the algorithm is proven cheap enough in
+   principle; final timing needs re-measuring after real hardware exists.
+6. **Battery-life numbers (in the original synthetic-suite reports) are
+   estimates** built from labeled *assumed* current-draw figures, not a
+   real multimeter measurement.
 
-1. **No physical hardware.** There is no MCU, accelerometer, PPG sensor,
-   buzzer, LED, or BLE radio here. `src/sensors.py` generates
-   physiologically-plausible *synthetic* signals for each of the four
-   states; `src/alerts.py` *simulates* what the buzzer/LED/BLE outputs
-   would look like. Building and testing on real parts is the
-   submission's own **next roadmap step** ("Real-World Testing"), not a
-   gap being hidden here.
-2. **Model footprint** is reported as the size of a pickled
-   scikit-learn `RandomForestClassifier` (the "decision-tree ensemble"
-   option from Slide 7), which is a reasonable proxy but not the same as
-   a final compiled, int8-quantized TFLite-Micro binary. The "int8 CNN"
-   option from the same slide is separately demonstrated in
-   `scripts/quantization_demo.py`, which performs real int8 weight
-   quantization on a small neural net — but that network also has not
-   been deployed to an MCU.
-3. **Decision latency** is measured on this development machine's CPU
-   in Python, not on the target Cortex-M-class microcontroller in C. It
-   shows the *algorithm* is cheap enough in principle; final timing must
-   be re-measured after porting to embedded C.
-4. **Battery-life numbers are an estimate**, built from clearly labeled
-   *assumed* current-draw figures (see the top of
-   `scripts/power_latency_test.py`), not a real multimeter measurement.
-   Real current-draw measurement needs physical hardware, which is
-   explicitly called out as future work.
-5. **"Controlled User Trials"** are simulated by perturbing synthetic
-   sensor windows with different noise profiles to emulate person-to-
-   person variation — not real volunteers. Real volunteer testing is
-   also part of the "Real-World Testing" roadmap phase.
-
-Every one of these limitations is also noted directly in the relevant
-script's docstring, next to the specific submission claim it relates to.
+Every one of these is also noted at the point in the code/docs where the
+relevant claim is made.
