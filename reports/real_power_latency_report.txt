@@ -1,0 +1,20 @@
+SentryBand -- Real Power & Latency Test Report
+================================================
+
+1) REALLY MEASURED: fall+heart .tflite inference latency over 200 real held-out windows
+   (via tf.lite.Interpreter on the actual models_tflite/ files, Python-process overhead included -- real MCU latency will differ, but this replaces the earlier synthetic-window measurement)
+   mean : 0.006 ms
+   p95  : 0.007 ms
+   max  : 0.087 ms
+   design target (Slide 7): < 50 ms per decision window
+   status vs target (p95) : PASS
+
+2) ESTIMATED (STILL NOT measured -- no physical hardware exists yet;
+   this cannot become a real measurement without a multimeter on an
+   actual MCU, unlike the latency number above):
+   assumed active current   : 6.0 mA
+   assumed sleep current    : 8.0 uA
+   assumed active time/cycle: 50 ms per 2s window
+   assumed battery capacity : 100.0 mAh
+   -> estimated avg current : 0.158 mA
+   -> estimated battery life: 633.7 hours (~26.4 days)

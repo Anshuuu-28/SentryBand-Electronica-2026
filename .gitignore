@@ -1,6 +1,11 @@
 # Raw datasets -- huge, third-party licensed, download separately (see README)
 raw_data/
 
+# Compiled firmware build artifacts -- regenerate by running the Wokwi/Arduino
+# build, don't commit binaries
+Hardware/build/
+firmware/**/build/
+
 # Python
 __pycache__/
 *.pyc

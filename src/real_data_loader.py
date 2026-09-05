@@ -141,19 +141,30 @@ def _read_sisfall_txt(path: Path) -> np.ndarray:
     return np.array(rows, dtype=float)
 
 
-def load_sisfall_accel_windows(sisfall_dir: str, max_files: int = None):
+def load_sisfall_accel_windows(sisfall_dir: str, max_files: int = None,
+                                subject_filter=None):
     """
     Returns (fall_windows, adl_windows), each a list of [WINDOW_SAMPLES, 3]
     arrays in g, resampled to SAMPLE_RATE_HZ, drawn from real SisFall trials.
+
+    subject_filter: optional callable(filename_stem) -> bool. If given,
+    only files where this returns True are used -- e.g. to hold out a
+    specific real subject for a leave-one-subject-out generalization test
+    (see scripts/real_user_trials.py). Filenames look like
+    "F01_SA01_R01.txt" / "D01_SA01_R01.txt", so subject_filter typically
+    checks for a "SA01"-style substring.
     """
     root = Path(sisfall_dir)
     files = sorted(root.rglob("*.txt"))
+    if subject_filter:
+        files = [f for f in files if subject_filter(f.stem)]
     if max_files:
         files = files[:max_files]
     if not files:
         raise FileNotFoundError(
-            f"No .txt files found under {sisfall_dir}. Check SISFALL_DIR "
-            "points at the extracted SisFall_dataset/ folder."
+            f"No .txt files found under {sisfall_dir}"
+            + (" matching subject_filter" if subject_filter else "")
+            + ". Check SISFALL_DIR points at the extracted SisFall_dataset/ folder."
         )
 
     fall_windows, adl_windows = [], []
@@ -195,7 +206,8 @@ def load_sisfall_accel_windows(sisfall_dir: str, max_files: int = None):
 # PPG-DaLiA -> PPG windows (normal heart rhythm, real)
 # --------------------------------------------------------------------------
 
-def load_ppgdalia_normal_windows(ppgdalia_dir: str, max_subjects: int = None):
+def load_ppgdalia_normal_windows(ppgdalia_dir: str, max_subjects: int = None,
+                                  subject_filter=None):
     """
     Returns a list of [WINDOW_SAMPLES] real PPG windows (resampled to
     SAMPLE_RATE_HZ) drawn from real PPG-DaLiA BVP signal, representing the
@@ -207,12 +219,18 @@ def load_ppgdalia_normal_windows(ppgdalia_dir: str, max_subjects: int = None):
         full .pkl footprint), OR
       - the original raw S*.pkl files (if you extracted those instead)
     Auto-detects whichever is present under ppgdalia_dir.
+
+    subject_filter: optional callable(filename_stem) -> bool, e.g. to
+    hold out a specific real subject ("S3") for a leave-one-subject-out
+    generalization test (see scripts/real_user_trials.py).
     """
     root = Path(ppgdalia_dir)
     npz_files = sorted(root.rglob("S*.npz"))
     pkl_files = sorted(root.rglob("S*.pkl"))
     files = npz_files if npz_files else pkl_files
     is_npz = bool(npz_files)
+    if subject_filter:
+        files = [f for f in files if subject_filter(f.stem)]
     if max_subjects:
         files = files[:max_subjects]
     if not files:
@@ -368,7 +386,9 @@ def build_real_dataset(sisfall_dir: str, ppgdalia_dir: str,
                         n_per_class: int = 100, seed: int = RANDOM_SEED,
                         max_sisfall_files: int = None,
                         max_ppgdalia_subjects: int = None,
-                        mimic_af_dir: str = None) -> Dataset:
+                        mimic_af_dir: str = None,
+                        sisfall_subject_filter=None,
+                        ppgdalia_subject_filter=None) -> Dataset:
     """
     Builds a balanced 4-class Dataset (normal / fall / heart / combined)
     the same shape as dataset.build_dataset(), but sourced from real
@@ -391,9 +411,9 @@ def build_real_dataset(sisfall_dir: str, ppgdalia_dir: str,
     rng = np.random.default_rng(seed)
 
     fall_accel_pool, adl_accel_pool = load_sisfall_accel_windows(
-        sisfall_dir, max_files=max_sisfall_files)
+        sisfall_dir, max_files=max_sisfall_files, subject_filter=sisfall_subject_filter)
     normal_ppg_pool = load_ppgdalia_normal_windows(
-        ppgdalia_dir, max_subjects=max_ppgdalia_subjects)
+        ppgdalia_dir, max_subjects=max_ppgdalia_subjects, subject_filter=ppgdalia_subject_filter)
 
     real_af_pool = None
     if mimic_af_dir:

@@ -1,0 +1,14 @@
+SentryBand -- Multi-Fold Leave-Subject-Out Trial
+==================================================
+4 folds, each holding out 2 real SisFall + 1 real PPG-DaLiA subject(s) never used in that fold's training.
+
+Fold 1: held out ['SA01', 'SA02'] + ['S10'] -> accuracy 64.38%
+Fold 2: held out ['SA03', 'SA04'] + ['S11'] -> accuracy 66.88%
+Fold 3: held out ['SA05', 'SA06'] + ['S12'] -> accuracy 71.88%
+Fold 4: held out ['SA07', 'SA08'] + ['S13'] -> accuracy 66.25%
+
+Mean leave-subject-out accuracy across 4 folds: 67.34%
+Range: 64.38% - 71.88%
+
+For comparison: same-window (not same-subject-excluded) held-out accuracy was 76-77.5% (see reports/real_data_bench_report.txt).
+The gap between these two numbers IS the finding: it is a real, named challenge in wearable sensing research (Leave-One-Subject-Out generalization gap), not unique to this project, and an honest, specific target for future work (per-user calibration, more subject diversity in training, or domain-adaptation techniques).

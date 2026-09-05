@@ -1,0 +1,10 @@
+SentryBand -- Real User Trials Report
+=============================================
+Genuine leave-real-subjects-out test: trained on all OTHER real
+SisFall/PPG-DaLiA subjects, tested ONLY on subjects the model
+never saw during training -- an honest generalization-to-a-new-
+real-person measurement, replacing the old synthetic noise-
+perturbation stand-in (scripts/user_trials.py).
+
+Held-out 'new user' subjects -- SisFall: ['SA23', 'SE06'], PPG-DaLiA: ['S14', 'S15']
+Accuracy on held-out, never-before-seen real subjects: 50.00%
