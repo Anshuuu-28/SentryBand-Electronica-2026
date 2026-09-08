@@ -16,22 +16,30 @@ concurrency:
 
 jobs:
   deploy:
+    runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      # 1. Checkout repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      # 2. Configure GitHub Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
-
-      - name: Upload Frontend/ as Pages artifact
-        uses: actions/upload-pages-artifact@v3
         with:
-          path: "Frontend"
+          enablement: true
 
+      # 3. Upload the Frontend folder
+      - name: Upload Frontend as Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: "./Frontend"
+
+      # 4. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
