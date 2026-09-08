@@ -26,6 +26,18 @@ what was actually measured.
 
 ---
 
+## Deployed URL & Demo Video
+
+- **Live presentation site:** https://anshuuu-28.github.io/SentryBand-Electronica-2026/
+- **Demo video:** [add link once uploaded]
+
+The site presents the real-data results, the 4 device states, and the
+data sources documented below. The video walks through the deployed
+site and the live Wokwi hardware simulation — see "Real embedded
+firmware" below for how to run the simulation yourself.
+
+---
+
 ## What's real vs. what's a documented simplification
 
 | Claim | Status | Where |
@@ -168,10 +180,10 @@ so wouldn't add real validation value here. The ML models above (Module
 
 ## Presentation site
 
-`docs/index.html` is a single-file, dependency-free static site for the
-submission and demo video — deployed via GitHub Pages, set to serve
-from the `/docs` folder (Settings → Pages → Deploy from a branch →
-branch `main`, folder `/docs`). Live at:
+`Frontend/index.html` is a single-file, dependency-free static site for
+the submission and demo video — deployed via GitHub Pages using the
+GitHub Actions workflow at `.github/workflows/deploy.yml`, which
+uploads the `Frontend/` folder on every push to `main`. Live at:
 **https://anshuuu-28.github.io/SentryBand-Electronica-2026/**
 
 It presents the real numbers above, the 4 device states, and the real
@@ -274,8 +286,8 @@ read without re-running anything.
 1. **No physical hardware yet.** Everything above runs on real *data*
    but simulated *sensors* (Wokwi) — there is no physical MCU,
    accelerometer, PPG sensor, or BLE radio. Building and testing on real
-   parts remains the submission's own next roadmap step
-   ("Real-World Testing").
+   parts is targeted for completion by **Sep 14, 2026**, and remains
+   the submission's own next roadmap step ("Real-World Testing").
 2. **Heart Alert real-data recall is ~70%** (see confusion matrix
    above) — the model's clearest weak point, stated plainly rather than
    smoothed over.
