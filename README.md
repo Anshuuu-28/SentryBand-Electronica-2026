@@ -29,7 +29,7 @@ what was actually measured.
 ## Deployed URL & Demo Video
 
 - **Live presentation site:** https://anshuuu-28.github.io/SentryBand-Electronica-2026/
-- **Demo video:** [add link once uploaded]
+- **Demo video:** https://youtu.be/gKeOW9RFdsc?feature=shared
 
 The site presents the real-data results, the 4 device states, and the
 data sources documented below. The video walks through the deployed
