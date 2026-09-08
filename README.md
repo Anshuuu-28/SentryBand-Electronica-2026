@@ -48,33 +48,45 @@ dataset provenance and every honesty caveat).
 
 | | scikit-learn model (`models_real/`) | int8 `.tflite` model (`models_tflite/`) |
 |---|---|---|
-| **Accuracy** | 76.0% | **77.5%** (quantization cost 0% accuracy) |
+| **Accuracy** | 74.0% | **71.5%** (quantization cost 0% accuracy) |
 | **Footprint** | 36.15 KB | **7.56 KB** (fall 3.87 KB + heart 3.70 KB) |
 | Format | pickled RandomForest | genuine int8-quantized `.tflite`, TensorFlow's converter |
 
 Target from the submission: footprint < 50 KB → **passed by a wide margin** on both.
 
-### Confusion matrix — real `.tflite` model, held-out real data
+### Confusion matrix — real `.tflite` model, held-out real data (all 15 real PPG-DaLiA subjects)
 
 ```
                         Normal   Fall   Heart   Combined
-true=Normal               45      1      3         1
-true=Fall                  4     42      0         4
-true=Heart Alert          15      0     35         0
-true=Combined Emergency    2     13      2        33
+true=Normal               45      1      4         0
+true=Fall                  4     42      1         3
+true=Heart Alert          17      0     33         0
+true=Combined Emergency    1     23      3        23
 ```
 
 Real Heart Alert windows are the weakest spot — mistaken for Normal
-~30% of the time. That's an honest, specific target for future work,
-not smoothed over.
+~34% of the time, and Combined Emergency is now the harder call too
+(mistaken for Fall ~46% of the time). Both are honest, specific
+targets for future work, not smoothed over. This got measurably
+harder once trained on all 15 real PPG-DaLiA subjects instead of 6 —
+see the note below.
 
-### Why 77.5%, not the ~90%+ from early synthetic testing
+### Why 71.5%, not the ~90%+ from early synthetic testing
 
 An earlier iteration trained purely on synthetic (procedurally
 generated) sensor data scored above 90%. That number is not reported as
 a headline result here, because synthetic data is easier to classify
 than real recordings — a materially misleading comparison. Every number
 in the table above comes from real, cited, third-party datasets.
+
+**A second, related finding:** an earlier version of this same real-data
+pipeline, trained on only 6 of PPG-DaLiA's 15 real subjects, scored
+76-77.5%. Once all 15 real subjects were included, accuracy dropped to
+71.5-74.0% (confirmed stable across multiple retrains, not random
+variance — see PR history). More real subject diversity made the task
+measurably harder, not easier. We're reporting the 15-subject number as
+the true headline result because it's the more representative one, not
+because it's the more flattering one.
 
 ### Cross-subject generalization finding (a real result worth keeping)
 
@@ -92,7 +104,7 @@ Fold 4: held out SisFall [SA07, SA08] + PPG-DaLiA [S13] -> 66.25%
 Mean: 67.34%   Range: 64.38% - 71.88%
 ```
 
-Compared to the 76-77.5% same-window headline number, this is a real,
+Compared to the 71.5-74.0% same-window headline number, this is a real,
 ~10-point generalization gap to entirely new people — consistent with,
 and not unusually large next to, published wearable/HAR literature,
 which commonly reports similar or larger LOSO drops. This is the
@@ -268,7 +280,7 @@ read without re-running anything.
    above) — the model's clearest weak point, stated plainly rather than
    smoothed over.
 3. **Cross-subject generalization drops to ~67%** (see "Cross-subject
-   generalization finding" above) from the 76-77.5% same-window number —
+   generalization finding" above) from the 71.5-74.0% same-window number —
    a real, named, and expected gap in wearable-sensing ML (Leave-One-
    Subject-Out), not unique to this project, but real and unresolved.
 4. **The firmware ports decision logic, not full feature extraction**

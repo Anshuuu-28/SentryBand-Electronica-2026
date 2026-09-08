@@ -141,6 +141,24 @@ def run_tflite_interpreter(tflite_bytes: bytes, X: np.ndarray) -> np.ndarray:
     return probs
 
 
+def export_model_weights(model):
+    """Returns the trained Keras model's weights as a plain dict (see
+    export_model_weights_json's docstring for the format/architecture
+    assumption)."""
+    normalizer = model.layers[0]
+    dense1, dense2, dense3 = model.layers[1], model.layers[2], model.layers[3]
+    W1, b1 = dense1.get_weights()
+    W2, b2 = dense2.get_weights()
+    W3, b3 = dense3.get_weights()
+    return {
+        "mean": normalizer.mean.numpy().flatten().tolist(),
+        "variance": normalizer.variance.numpy().flatten().tolist(),
+        "W1": W1.tolist(), "b1": b1.tolist(),
+        "W2": W2.tolist(), "b2": b2.tolist(),
+        "W3": W3.tolist(), "b3": b3.tolist(),
+    }
+
+
 def main():
     try:
         import tensorflow as tf  # noqa: F401
@@ -165,6 +183,7 @@ def main():
 
     tflite_models = {}
     float_probs = {}
+    web_weights = {}
     for name, X_train, y_train, X_test in [
         ("fall", train_ds.X_accel, train_ds.y_fall, test_ds.X_accel),
         ("heart", train_ds.X_ppg, train_ds.y_heart, test_ds.X_ppg),
@@ -183,6 +202,7 @@ def main():
         lines.append(f"{name} classifier float model: train_acc={final_train_acc:.3f}, "
                       f"val_acc={final_val_acc:.3f}")
         float_probs[name] = float_test_probs
+        web_weights[name] = export_model_weights(model)
 
         print(f"Converting {name} classifier to int8 (dynamic-range) TFLite...")
         tflite_bytes = convert_to_int8_tflite(model, X_train)
@@ -249,6 +269,14 @@ def main():
     (REPORTS_DIR / "tflite_real_report.txt").write_text(report + "\n")
     print(f"\nModels saved to: {MODELS_DIR}")
     print(f"Report saved to: {REPORTS_DIR / 'tflite_real_report.txt'}")
+
+    import json
+    DOCS_DIR = Path(__file__).resolve().parents[1] / "Frontend"
+    DOCS_DIR.mkdir(exist_ok=True)
+    weights_path = DOCS_DIR / "model_weights.json"
+    weights_path.write_text(json.dumps(web_weights))
+    print(f"Web model weights saved to: {weights_path} "
+          f"(for the client-side JS 'upload your own data' feature)")
 
 
 if __name__ == "__main__":

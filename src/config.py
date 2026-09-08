@@ -29,6 +29,6 @@ STATE_COMBINED_EMERGENCY = "Combined Emergency"
 # (Slide 13: "False-Alarm Reduction: Tune thresholds and combined-signal
 # logic to minimize false positives without missing true emergencies.")
 DEFAULT_FALL_THRESHOLD = 0.60
-DEFAULT_HEART_THRESHOLD = 0.70
+DEFAULT_HEART_THRESHOLD = 0.50
 
 RANDOM_SEED = 42
